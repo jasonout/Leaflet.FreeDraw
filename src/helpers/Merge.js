@@ -37,6 +37,10 @@ function latLngsToTuple(latLngs) {
     return latLngs.map(model => [model.lat, model.lng]);
 }
 
+function cleanGoogleLatLngs(point) {
+    return typeof point.lat === 'function' ? { lat: point.lat(), lng: point.lng() } : point;
+}
+
 /**
  * @param {Object} map
  * @param {Array} polygons
@@ -50,13 +54,13 @@ export default (map, polygons, options) => {
 
     const analysis = polygons.reduce((accum, polygon) => {
 
-        const latLngs = polygon.getLatLngs()[0];
-        const points = latLngsToClipperPoints(map, polygon.getLatLngs()[0]);
+        const latLngs = polygon.getLatLngs()[0].map(cleanGoogleLatLngs);
+        const points = latLngsToClipperPoints(map, latLngs);
         const turfPolygon = toTurfPolygon(latLngs);
 
         // Determine if the current polygon intersects any of the other polygons currently on the map.
         const intersects = polygons.filter(complement(identical(polygon))).some(polygon => {
-            return Boolean(isIntersecting(turfPolygon, toTurfPolygon(polygon.getLatLngs()[0])));
+            return Boolean(isIntersecting(turfPolygon, toTurfPolygon(polygon.getLatLngs()[0].map(cleanGoogleLatLngs))));
         });
 
         const key = intersects ? 'intersecting' : 'rest';

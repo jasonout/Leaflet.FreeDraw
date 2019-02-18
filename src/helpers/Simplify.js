@@ -1,5 +1,8 @@
-import { Point } from 'leaflet';
+
 import { Clipper, PolyFillType } from 'clipper-lib';
+
+const Point = google.maps.Point;
+const LatLng = google.maps.LatLng;
 
 /**
  * @method latLngsToClipperPoints
@@ -10,7 +13,7 @@ import { Clipper, PolyFillType } from 'clipper-lib';
 export const latLngsToClipperPoints = (map, latLngs) => {
 
     return latLngs.map(latLng => {
-        const point = map.latLngToLayerPoint(latLng);
+        const point = map.latLngToLayerPoint(typeof latLng.lat === 'function' ? latLng : new LatLng(latLng));
         return { X: point.x, Y: point.y };
     });
 

@@ -79,7 +79,8 @@ export const createFor = (map, latLngs, options = defaultOptions, preventMutatio
         const polygon = new Polygon({
             ...defaultOptions, ...options, className: 'leaflet-polygon',
             paths: latLngs,
-            clickable: false
+            clickable: false,
+            strokeWeight: 2
         });
 
         console.log('polygon latlngs: ', latLngs.map(l => [l.lat(), l.lng()]));
