@@ -102,12 +102,34 @@ module('leafletApp', []).controller('MapController', $scope => {
         link(scope, element) {
 
             // Instantiate L.Map and the FreeDraw layer, passing in the default mode.
-            const map = new L.Map(element[0], { doubleClickZoom: false }).setView([51.505, -0.09], 14);
+            // const map = new L.Map(element[0], { doubleClickZoom: false }).setView([51.505, -0.09], 14);
+            const map = new google.maps.Map(
+                element[0],
+                {
+                    zoom: 14,
+                    center: { lat: 51.505, lng: -0.09 },
+                    clickableIcons: false,
+                    draggableCursor:'crosshair'
+                }
+            );
+
+            const test = new google.maps.Polygon({
+                paths: [
+                    new google.maps.LatLng(51.506, -0.091),
+                    new google.maps.LatLng(51.516, -0.0925),
+                    new google.maps.LatLng(51.518, -0.0955),
+                    new google.maps.LatLng(51.508, -0.0930),
+                    new google.maps.LatLng(51.506, -0.091)
+                ]
+            });
+
+            test.setMap(map);
+
+
             const freeDraw = window.freeDraw = new FreeDraw({ mode: ALL });
 
-            // Add the tile layer and the FreeDraw layer.
-            L.tileLayer(scope.TILE_URL).addTo(map);
-            map.addLayer(freeDraw);
+            map.data.add(freeDraw);
+            freeDraw.onAdd(map);
 
             freeDraw.on('mode', event => {
 

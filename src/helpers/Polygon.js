@@ -1,4 +1,4 @@
-import { LineUtil, Point, Polygon, DomEvent } from 'leaflet';
+import { LineUtil, DomEvent } from 'leaflet';
 import { defaultOptions, edgesKey, modesKey, polygons } from '../FreeDraw';
 import { updateFor } from './Layer';
 import createEdges from './Edges';
@@ -6,6 +6,9 @@ import { DELETE, APPEND } from './Flags';
 import handlePolygonClick from './Polygon';
 import concavePolygon from './Concave';
 import mergePolygons from './Merge';
+
+const Polygon = google.maps.Polygon;
+const Point = google.maps.Point;
 
 /**
  * @method appendEdgeFor
@@ -42,6 +45,7 @@ const appendEdgeFor = (map, polygon, options, { parts, newPoint, startPoint, end
     }, []);
 
     // Update the lat/lngs with the newly inserted edge.
+    debugger;
     polygon.setLatLngs(latLngs);
 
     // Remove the current set of edges for the polygon, and then recreate them, assigning the
@@ -70,19 +74,37 @@ export const createFor = (map, latLngs, options = defaultOptions, preventMutatio
     // Simplify the polygon before adding it to the map.
     const addedPolygons = limitReached ? [] : map.simplifyPolygon(map, concavedLatLngs, options).map(latLngs => {
 
-        const polygon = new Polygon(latLngs, {
-            ...defaultOptions, ...options, className: 'leaflet-polygon'
-        }).addTo(map);
+        console.log(latLngs);
+
+        const polygon = new Polygon({
+            ...defaultOptions, ...options, className: 'leaflet-polygon',
+            paths: latLngs,
+            clickable: false
+        });
+
+        console.log('polygon latlngs: ', latLngs.map(l => [l.lat(), l.lng()]));
+
+        polygon.getLatLngs = () => {
+            return polygon.getPaths().getArray().map(a => a.getArray());
+        }
+
+        polygon.setLatLngs = (latLngs) => {
+            polygon.setPaths(latLngs);
+        };
+
+        polygon.redraw = () => {};
+
+        polygon.setMap(map);
 
         // Attach the edges to the polygon.
         polygon[edgesKey] = createEdges(map, polygon, options);
 
         // Disable the propagation when you click on the marker.
-        DomEvent.disableClickPropagation(polygon);
+        // DomEvent.disableClickPropagation(polygon);
 
         // Yield the click handler to the `handlePolygonClick` function.
-        polygon.off('click');
-        polygon.on('click', handlePolygonClick(map, polygon, options));
+        //polygon.off('click');
+        //polygon.on('click', handlePolygonClick(map, polygon, options));
 
         return polygon;
 

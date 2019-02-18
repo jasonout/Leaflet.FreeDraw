@@ -1,8 +1,10 @@
-import { DivIcon, Marker, DomEvent } from 'leaflet';
+import { DivIcon, DomEvent } from 'leaflet';
 import { polygons, modesKey, notifyDeferredKey } from '../FreeDraw';
 import { updateFor } from './Layer';
 import { CREATE, EDIT } from './Flags';
 import mergePolygons, { fillPolygon } from './Merge';
+
+const Marker = google.maps.Marker;
 
 /**
  * @method createEdges
@@ -31,10 +33,28 @@ export default function createEdges(map, polygon, options) {
         const mode = map[modesKey];
         const icon = new DivIcon({ className: `leaflet-edge ${mode & EDIT ? '' : 'disabled'}`.trim() });
         const latLng = map.layerPointToLatLng(point);
-        const marker = new Marker(latLng, { icon }).addTo(map);
+        const marker = new Marker({
+            position: latLng,
+            icon: {
+                path: 'M-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
+                scale: 1,
+                strokeWeight: 2,
+                fillColor: '#95bc59',
+                strokeColor: '#fff',
+                fillOpacity: 1
+            }
+        });
+        marker.setMap(map);
 
         // Disable the propagation when you click on the marker.
-        DomEvent.disableClickPropagation(marker);
+        //DomEvent.disableClickPropagation(marker);
+
+        marker.on = (event, handler) => {
+            google.maps.event.addListener(marker, event, handler);
+        };
+
+        marker.getLatLng = marker.getPosition;
+        marker.setLatLng = marker.setPosition;
 
         marker.on('mousedown', function mouseDown() {
 
@@ -57,7 +77,7 @@ export default function createEdges(map, polygon, options) {
             const mouseMove = event => {
 
                 // Determine where to move the marker to from the mouse move event.
-                const containerPoint = map.latLngToContainerPoint(event.latlng);
+                const containerPoint = map.latLngToContainerPoint(event.latLng);
                 const latLng = map.containerPointToLatLng(containerPoint);
 
                 // Update the marker with the new lat/lng.
@@ -65,6 +85,7 @@ export default function createEdges(map, polygon, options) {
 
                 // ...And finally update the polygon to match the current markers.
                 const latLngs = markers.map(marker => marker.getLatLng());
+                debugger;
                 polygon.setLatLngs(latLngs);
                 polygon.redraw();
 

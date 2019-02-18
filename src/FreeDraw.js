@@ -1,4 +1,4 @@
-import { FeatureGroup, Point } from 'leaflet';
+import { FeatureGroup } from 'leaflet';
 import { select } from 'd3-selection';
 import { line, curveMonotoneX } from 'd3-shape';
 import Set from 'es6-set';
@@ -8,6 +8,8 @@ import { updateFor } from './helpers/Layer';
 import { createFor, removeFor, clearFor } from './helpers/Polygon';
 import { CREATE, EDIT, DELETE, APPEND, EDIT_APPEND, NONE, ALL, modeFor } from './helpers/Flags';
 import simplifyPolygon from './helpers/Simplify';
+
+const Point = google.maps.Point;
 
 /**
  * @constant polygons
@@ -29,7 +31,8 @@ export const defaultOptions = {
     maximumPolygons: Infinity,
     notifyAfterEditExit: false,
     leaveModeAfterCreate: false,
-    strokeWidth: 2
+    strokeWidth: 2,
+    fillColor: '#95bc59'
 };
 
 /**
@@ -61,6 +64,26 @@ export const edgesKey = Symbol('freedraw/edges');
  * @type {Symbol}
  */
 const cancelKey = Symbol('freedraw/cancel');
+
+function latLngToContainerPoint(latLng, map) {
+	var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+	var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+	var scale = Math.pow(2, map.getZoom());
+	var worldPoint = map.getProjection().fromLatLngToPoint(latLng);
+	return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+}
+
+function containerPointToLatLng(pixel, map) {
+	var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+	var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+    var scale = 1 << map.getZoom();
+    var worldPoint = new google.maps.Point(pixel.x / scale + bottomLeft.x, pixel.y / scale + topRight.y);
+    var t = map.getProjection().fromPointToLatLng(worldPoint);
+
+    console.log('containerPointToLatLng: ', t.lat(), t.lng());
+
+	return t;
+}
 
 export default class FreeDraw extends FeatureGroup {
 
@@ -94,6 +117,50 @@ export default class FreeDraw extends FeatureGroup {
 
         // Add the item to the map.
         polygons.set(map, new Set());
+
+        map.dragging = map.dragging || {
+            enable: () => map.setOptions({ draggable: true }),
+            disable: () => map.setOptions({ draggable: false })
+        };
+
+        map.eventMap = {};
+
+        map._container = map.getDiv();
+
+        map.removeLayer = (element) => {
+            element && element.setMap && element.setMap(null);
+        };
+
+        map.on = (event, handler) => {
+            const events = event.split(' ');
+            events.forEach(eventName => {
+                map.eventMap[eventName] = map.eventMap[eventName] || {};
+
+                if (map.eventMap[eventName][handler]) {
+                    return;
+                }
+
+                map.eventMap[eventName][handler] = google.maps.event.addListener(map, eventName, handler);
+            });
+        };
+        map.off = (event, handler) => {
+            const events = event.split(' ');
+            events.forEach(eventName => {
+                const eventId = map.eventMap[eventName] && map.eventMap[eventName][handler];
+
+                if (eventId) {
+                    google.maps.event.removeListener(eventId);
+                    delete map.eventMap[eventName][handler];
+                }
+            });
+        };
+        map.fire = (event, eventArgs) => google.maps.event.trigger(map, event, eventArgs);
+
+        map.latLngToContainerPoint = (latLng) => latLngToContainerPoint(latLng, map);
+        map.mouseEventToContainerPoint = event => event.pixel;
+        map.containerPointToLatLng = (point) => containerPointToLatLng(point, map);
+        map.latLngToLayerPoint = map.latLngToContainerPoint;
+        map.layerPointToLatLng = map.containerPointToLatLng;
 
         // Set the initial mode.
         modeFor(map, this.options.mode, this.options);
@@ -204,6 +271,7 @@ export default class FreeDraw extends FeatureGroup {
      * @return {void}
      */
     listenForEvents(map, svg, options) {
+        debugger;
 
         /**
          * @method mouseDown
@@ -211,6 +279,7 @@ export default class FreeDraw extends FeatureGroup {
          * @return {void}
          */
         const mouseDown = event => {
+            console.log("mouse down");
 
             if (!(map[modesKey] & CREATE)) {
 
@@ -225,9 +294,11 @@ export default class FreeDraw extends FeatureGroup {
              */
             const latLngs = new Set();
 
+            console.log(event.pixel, map.latLngToContainerPoint(event.latLng));
+
             // Create the line iterator and move it to its first `yield` point, passing in the start point
             // from the mouse down event.
-            const lineIterator = this.createPath(map, svg, map.latLngToContainerPoint(event.latlng), options.strokeWidth);
+            const lineIterator = this.createPath(map, svg, map.latLngToContainerPoint(event.latLng), options.strokeWidth);
             lineIterator.next();
 
             /**
@@ -238,7 +309,7 @@ export default class FreeDraw extends FeatureGroup {
             const mouseMove = event => {
 
                 // Resolve the pixel point to the latitudinal and longitudinal equivalent.
-                const point = map.mouseEventToContainerPoint(event.originalEvent);
+                const point = map.mouseEventToContainerPoint(event.originalEvent || event);
 
                 // Push each lat/lng value into the points set.
                 latLngs.add(map.containerPointToLatLng(point));
