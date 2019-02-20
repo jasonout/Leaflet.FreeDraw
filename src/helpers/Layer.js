@@ -1,4 +1,4 @@
-import { DomUtil } from 'leaflet';
+import * as DomUtil from './DomUtil';
 import { polygons, instanceKey } from '../FreeDraw';
 import { NONE, CREATE, EDIT, DELETE, APPEND } from './Flags';
 

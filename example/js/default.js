@@ -101,35 +101,44 @@ module('leafletApp', []).controller('MapController', $scope => {
          */
         link(scope, element) {
 
-            // Instantiate L.Map and the FreeDraw layer, passing in the default mode.
-            // const map = new L.Map(element[0], { doubleClickZoom: false }).setView([51.505, -0.09], 14);
-            const map = new google.maps.Map(
-                element[0],
-                {
-                    zoom: 14,
-                    center: { lat: 51.505, lng: -0.09 },
-                    clickableIcons: false,
-                    draggableCursor:'crosshair'
-                }
-            );
+            const FLAVOR = 'leaflet';
 
-            const test = new google.maps.Polygon({
-                paths: [
-                    new google.maps.LatLng(51.506, -0.091),
-                    new google.maps.LatLng(51.516, -0.0925),
-                    new google.maps.LatLng(51.518, -0.0955),
-                    new google.maps.LatLng(51.508, -0.0930),
-                    new google.maps.LatLng(51.506, -0.091)
-                ]
+            const freeDraw = window.freeDraw = new FreeDraw({
+                mode: ALL,
+                flavor: FLAVOR
             });
 
-            test.setMap(map);
+            let map;
+
+            if (FLAVOR == 'google') {
+                const mapContainer = document.createElement('div');
+                mapContainer.classList.add('google-map-container');
+
+                element[0].appendChild(mapContainer);
+
+                map = new google.maps.Map(
+                    mapContainer,
+                    {
+                        zoom: 14,
+                        center: { lat: 51.505, lng: -0.09 },
+                        clickableIcons: false
+                    }
+                );
+
+                map.data.add(freeDraw);
+
+            } else {
+
+                // Instantiate L.Map and the FreeDraw layer, passing in the default mode.
+                map = new L.Map(element[0], { doubleClickZoom: false }).setView([51.505, -0.09], 14);
+
+                L.tileLayer(scope.TILE_URL).addTo(map);
+                map.addLayer(freeDraw);
+            }
 
 
-            const freeDraw = window.freeDraw = new FreeDraw({ mode: ALL });
-
-            map.data.add(freeDraw);
             freeDraw.onAdd(map);
+
 
             freeDraw.on('mode', event => {
 

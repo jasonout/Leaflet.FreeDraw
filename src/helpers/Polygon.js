@@ -7,9 +7,6 @@ import handlePolygonClick from './Polygon';
 import concavePolygon from './Concave';
 import mergePolygons from './Merge';
 
-const Polygon = google.maps.Polygon;
-const Point = google.maps.Point;
-
 /**
  * @method appendEdgeFor
  * @param {Object} map
@@ -45,7 +42,6 @@ const appendEdgeFor = (map, polygon, options, { parts, newPoint, startPoint, end
     }, []);
 
     // Update the lat/lngs with the newly inserted edge.
-    debugger;
     polygon.setLatLngs(latLngs);
 
     // Remove the current set of edges for the polygon, and then recreate them, assigning the
@@ -74,38 +70,21 @@ export const createFor = (map, latLngs, options = defaultOptions, preventMutatio
     // Simplify the polygon before adding it to the map.
     const addedPolygons = limitReached ? [] : map.simplifyPolygon(map, concavedLatLngs, options).map(latLngs => {
 
-        console.log(latLngs);
-
-        const polygon = new Polygon({
-            ...defaultOptions, ...options, className: 'leaflet-polygon',
-            paths: latLngs,
-            clickable: false,
-            strokeWeight: 2
+        const polygon = map.createPolygon(latLngs, {
+            ...defaultOptions,
+            ...options,
+            className: 'leaflet-polygon',
         });
-
-        console.log('polygon latlngs: ', latLngs.map(l => [l.lat(), l.lng()]));
-
-        polygon.getLatLngs = () => {
-            return polygon.getPaths().getArray().map(a => a.getArray());
-        }
-
-        polygon.setLatLngs = (latLngs) => {
-            polygon.setPaths(latLngs);
-        };
-
-        polygon.redraw = () => {};
-
-        polygon.setMap(map);
 
         // Attach the edges to the polygon.
         polygon[edgesKey] = createEdges(map, polygon, options);
 
         // Disable the propagation when you click on the marker.
-        // DomEvent.disableClickPropagation(polygon);
+        polygon.disableClickPropagation();
 
         // Yield the click handler to the `handlePolygonClick` function.
-        //polygon.off('click');
-        //polygon.on('click', handlePolygonClick(map, polygon, options));
+        polygon.off('click');
+        polygon.on('click', handlePolygonClick(map, polygon, options));
 
         return polygon;
 
@@ -186,7 +165,7 @@ export default (map, polygon, options) => {
             // Otherwise we'll simply yield the previous accumulator.
             return accumulator;
 
-        }, { lowestDistance: Infinity, startPoint: new Point(), endPoint: new Point() });
+        }, { lowestDistance: Infinity, startPoint: new map.Point(), endPoint: new map.Point() });
 
         // Setup the conditions for the switch statement to make the cases clearer.
         const mode = map[modesKey];

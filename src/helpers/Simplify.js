@@ -1,9 +1,6 @@
 
 import { Clipper, PolyFillType } from 'clipper-lib';
 
-const Point = google.maps.Point;
-const LatLng = google.maps.LatLng;
-
 /**
  * @method latLngsToClipperPoints
  * @param {Object} map
@@ -13,7 +10,7 @@ const LatLng = google.maps.LatLng;
 export const latLngsToClipperPoints = (map, latLngs) => {
 
     return latLngs.map(latLng => {
-        const point = map.latLngToLayerPoint(typeof latLng.lat === 'function' ? latLng : new LatLng(latLng));
+        const point = map.latLngToLayerPoint(latLng);
         return { X: point.x, Y: point.y };
     });
 
@@ -30,7 +27,7 @@ const clipperPolygonsToLatLngs = (map, polygons) => {
     return polygons.map(polygon => {
 
         return polygon.map(point => {
-            const updatedPoint = new Point(point.X, point.Y);
+            const updatedPoint = new map.Point(point.X, point.Y);
             return map.layerPointToLatLng(updatedPoint);
         });
 

@@ -1,4 +1,3 @@
-import { DomUtil } from 'leaflet';
 import { edgesKey, modesKey, instanceKey, notifyDeferredKey, polygons } from '../FreeDraw';
 import { classesFor } from './Layer';
 
@@ -63,12 +62,11 @@ export const modeFor = (map, mode, options) => {
     mode & CREATE ? map.dragging.disable() : map.dragging.enable();
 
     Array.from(polygons.get(map)).forEach(polygon => {
+        polygon.toggle(mode & EDIT, mode & APPEND);
 
         polygon[edgesKey].forEach(edge => {
-
             // Modify the edge class names based on whether edit mode is enabled.
-            mode & EDIT ? DomUtil.removeClass(edge._icon, 'disabled') : DomUtil.addClass(edge._icon, 'disabled');
-
+           edge.toggle(mode & EDIT);
         });
 
     });
