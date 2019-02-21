@@ -59,7 +59,8 @@ const appendEdgeFor = (map, polygon, options, { parts, newPoint, startPoint, end
  * @param {Boolean} [preventMutations = false]
  * @return {Array|Boolean}
  */
-export const createFor = (map, latLngs, options = defaultOptions, preventMutations = false) => {
+export const createFor = (map, _latLngs, options = defaultOptions, preventMutations = false) => {
+    const latLngs = _latLngs.map(map.makeLatLng);
 
     // Determine whether we've reached the maximum polygons.
     const limitReached = polygons.get(map).size === options.maximumPolygons;
@@ -69,7 +70,6 @@ export const createFor = (map, latLngs, options = defaultOptions, preventMutatio
 
     // Simplify the polygon before adding it to the map.
     const addedPolygons = limitReached ? [] : map.simplifyPolygon(map, concavedLatLngs, options).map(latLngs => {
-
         const polygon = map.createPolygon(latLngs, {
             ...defaultOptions,
             ...options,

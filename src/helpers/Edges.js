@@ -32,7 +32,7 @@ export default function createEdges(map, polygon, options) {
         const marker = map.createMarker(
             latLng,
             { className: `leaflet-edge ${isEnabled ? '' : 'disabled'}`.trim() },
-            { ...options, isEnabled: (mode & EDIT) }
+            { ...options, isEnabled: isEnabled }
         );
 
         marker.disableClickPropagation();

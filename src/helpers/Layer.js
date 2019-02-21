@@ -9,17 +9,22 @@ import { NONE, CREATE, EDIT, DELETE, APPEND } from './Flags';
  * @return {void}
  */
 export const updateFor = (map, eventType) => {
-
-    const latLngs = Array.from(polygons.get(map)).map(polygon => {
+    const _polygons = polygons.get(map) || [];
+    const latLngs = Array.from(_polygons).map(polygon => {
 
         // Ensure the polygon has been closed.
         const latLngs = polygon.getLatLngs();
-        return [ ...latLngs[0], latLngs[0][0] ];
+        const isLatFn = typeof latLngs[0][0].lat === 'function';
+        const cleanPoints = latLngs[0].map(latLng => ({
+            lat: isLatFn ? latLng.lat() : latLng.lat,
+            lng: isLatFn ? latLng.lng() : latLng.lng
+        }));
 
+        return [ ...cleanPoints, cleanPoints[0] ];
     });
 
     // Fire the current set of lat lngs.
-    map[instanceKey].fire('markers', { latLngs, eventType });
+    map[instanceKey] && map[instanceKey].fire('markers', { latLngs, eventType });
 
 };
 

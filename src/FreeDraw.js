@@ -102,8 +102,9 @@ export default class FreeDraw extends FeatureGroup {
 
         // Add the item to the map.
         polygons.set(map, new Set());
+
         if (this.config && this.config.onMapInit) {
-            this.config.onMapInit(map);
+            this.config.onMapInit(map, this.options);
         }
 
         // Set the initial mode.

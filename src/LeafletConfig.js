@@ -3,7 +3,7 @@ import { DivIcon, Point, LatLng, Polygon, Marker, DomEvent, DomUtil } from 'leaf
 
 const NOOP = () => {};
 
-function createLeafletMarker(map, latLng, iconSettings, options) {
+function createLeafletMarker(map, latLng, iconSettings, options, fdOptions) {
 	const icon = new DivIcon(iconSettings);
 	const marker = new Marker(latLng, { icon }).addTo(map);
 
@@ -11,8 +11,14 @@ function createLeafletMarker(map, latLng, iconSettings, options) {
 	marker.toggle = (enabled) => {
 		if (enabled) {
 			DomUtil.removeClass(marker._icon, 'disabled');
+			if (fdOptions.hideDisabledEdges) {
+				marker._icon.style.display = '';
+			}
 		} else {
 			DomUtil.addClass(marker._icon, 'disabled');
+			if (fdOptions.hideDisabledEdges) {
+				marker._icon.style.display = 'none';
+			}
 		}
 	};
 	return marker;
@@ -27,11 +33,15 @@ function createLeafletPolygon(map, latLngs, options) {
 }
 
 export const LeafletFreeDrawConfig = {
-	onMapInit: (map) => {
-		map.createMarker = (latLng, icon, options) => createLeafletMarker(map, latLng, icon, options);
+	onMapInit: (map, fdOptions) => {
+		map.createMarker = (latLng, icon, options) => createLeafletMarker(map, latLng, icon, options, fdOptions);
 		map.Point = Point;
 		map.LatLng = LatLng;
-		map.createPolygon = (latLngs, options) => createLeafletPolygon(map, latLngs, options);
+		map.createPolygon = (latLngs, options) => createLeafletPolygon(map, latLngs, options, fdOptions);
+		map.makeLatLng = (l) => {
+			if (l instanceof map.LatLng || l.lat && l.lng) { return l; }
+			return l;
+		};
 	}
 };
 

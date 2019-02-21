@@ -21,12 +21,12 @@ function containerPointToLatLng(pixel, map) {
 
 const NOOP = () => {};
 
-function createGoogleMarker(map, latLng, icon, options) {
+function createGoogleMarker(map, latLng, icon, options, fdOptions) {
 	const marker = new google.maps.Marker({
 		position: latLng,
 		icon: {
 			 path: 'M-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
-			 scale: 1.25,
+			 scale: (fdOptions.hideDisabledEdges && !options.isEnabled) ? 0 : 1.25,
 			 strokeWeight: 2,
 			 fillColor: options.isEnabled ? '#95bc59' : '#adadad',
 			 strokeColor: '#fff',
@@ -48,7 +48,8 @@ function createGoogleMarker(map, latLng, icon, options) {
 		marker.setCursor(enabled ? 'move' : 'pointer');
 		marker.setIcon({
 			...marker.icon,
-			fillColor: enabled ? '#95bc59' : '#adadad'
+			fillColor: enabled ? '#95bc59' : '#adadad',
+			scale: (fdOptions.hideDisabledEdges && !enabled) ? 0 : 1.25
 		});
 	}
 
@@ -61,7 +62,7 @@ function createGooglePolygon(map, latLngs, options) {
 		strokeColor: '#50622b',
 		strokeOpacity: 0.75,
 		strokeWeight: 0,
-		paths: latLngs,
+		paths: [latLngs],
 		clickable: false
   });
 
@@ -110,7 +111,7 @@ function createGooglePolygon(map, latLngs, options) {
 }
 
 export const GoogleFreeDrawConfig = {
-	onMapInit: (map) => {
+	onMapInit: (map, fdOptions) => {
 		map.eventMap = {};
 
 		map._container = map.getDiv();
@@ -159,8 +160,23 @@ export const GoogleFreeDrawConfig = {
 			disable: () => map.setOptions({ draggable: false, draggableCursor: 'crosshair' })
 		};
 
-		map.createMarker = (latLng, icon, options) => createGoogleMarker(map, latLng, icon, options);
+		map.createMarker = (latLng, icon, options) => createGoogleMarker(map, latLng, icon, options, fdOptions);
 		map.createPolygon = (latLngs, options) => createGooglePolygon(map, latLngs, options);
+		map.makeLatLng = (latLng) => {
+			if (latLng instanceof map.LatLng) {
+				return latLng;
+			}
+
+			if (latLng.lat && latLng.lng) {
+				return new map.LatLng(latLng);
+			}
+
+			if (latLng[0] && latLng[1]) {
+				return new map.LatLng(latLng[0], latLng[1]);
+			}
+
+			return latLng;
+		}
 	}
 };
 

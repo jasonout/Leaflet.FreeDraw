@@ -5,8 +5,6 @@ import isIntersecting from 'turf-intersect';
 import { createFor, removeFor } from './Polygon';
 import { latLngsToClipperPoints } from './Simplify';
 
-const Point = google.maps.Point;
-
 /**
  * @method fillPolygon
  * @param {Object} map
@@ -22,7 +20,7 @@ export function fillPolygon(map, polygon, options) {
     removeFor(map, polygon);
 
     // Convert the Clipper points back into lat/lng pairs.
-    const latLngs = points.map(model => map.layerPointToLatLng(new Point(model.X, model.Y)));
+    const latLngs = points.map(model => map.layerPointToLatLng(new map.Point(model.X, model.Y)));
 
     createFor(map, latLngs, options, true);
 
@@ -83,7 +81,7 @@ export default (map, polygons, options) => {
 
         // Determine if it's an intersecting polygon or not.
         const latLngs = polygon.map(model => {
-            return map.layerPointToLatLng(new Point(model.X, model.Y));
+            return map.layerPointToLatLng(new map.Point(model.X, model.Y));
         });
 
         // Create the polygon, but this time prevent any merging, otherwise we'll find ourselves

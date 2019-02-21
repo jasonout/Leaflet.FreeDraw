@@ -1156,6 +1156,8 @@ var FreeDraw = function (_FeatureGroup) {
 
         _this.options = _extends({}, defaultOptions, options);
 
+        console.log(_this.options.flavor);
+
         if (_this.options.flavor === 'google') {
             _this.config = _GoogleConfig.GoogleFreeDrawConfig;
         } else {
@@ -1188,9 +1190,8 @@ var FreeDraw = function (_FeatureGroup) {
 
             // Add the item to the map.
             polygons.set(map, new _es6Set2.default());
-
             if (this.config && this.config.onMapInit) {
-                this.config.onMapInit(map, this.options);
+                this.config.onMapInit(map);
             }
 
             // Set the initial mode.
@@ -1723,24 +1724,16 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
  * @return {void}
  */
 var updateFor = exports.updateFor = function updateFor(map, eventType) {
-    var _polygons = _FreeDraw.polygons.get(map) || [];
-    var latLngs = Array.from(_polygons).map(function (polygon) {
+
+    var latLngs = Array.from(_FreeDraw.polygons.get(map)).map(function (polygon) {
 
         // Ensure the polygon has been closed.
         var latLngs = polygon.getLatLngs();
-        var isLatFn = typeof latLngs[0][0].lat === 'function';
-        var cleanPoints = latLngs[0].map(function (latLng) {
-            return {
-                lat: isLatFn ? latLng.lat() : latLng.lat,
-                lng: isLatFn ? latLng.lng() : latLng.lng
-            };
-        });
-
-        return [].concat(_toConsumableArray(cleanPoints), [cleanPoints[0]]);
+        return [].concat(_toConsumableArray(latLngs[0]), [latLngs[0][0]]);
     });
 
     // Fire the current set of lat lngs.
-    map[_FreeDraw.instanceKey] && map[_FreeDraw.instanceKey].fire('markers', { latLngs: latLngs, eventType: eventType });
+    map[_FreeDraw.instanceKey].fire('markers', { latLngs: latLngs, eventType: eventType });
 };
 
 /**
@@ -2500,11 +2493,10 @@ var appendEdgeFor = function appendEdgeFor(map, polygon, options, _ref) {
  * @param {Boolean} [preventMutations = false]
  * @return {Array|Boolean}
  */
-var createFor = exports.createFor = function createFor(map, _latLngs) {
+var createFor = exports.createFor = function createFor(map, latLngs) {
     var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _FreeDraw.defaultOptions;
     var preventMutations = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
-    var latLngs = _latLngs.map(map.makeLatLng);
 
     // Determine whether we've reached the maximum polygons.
     var limitReached = _FreeDraw.polygons.get(map).size === options.maximumPolygons;
@@ -2514,6 +2506,7 @@ var createFor = exports.createFor = function createFor(map, _latLngs) {
 
     // Simplify the polygon before adding it to the map.
     var addedPolygons = limitReached ? [] : map.simplifyPolygon(map, concavedLatLngs, options).map(function (latLngs) {
+
         var polygon = map.createPolygon(latLngs, _extends({}, _FreeDraw.defaultOptions, options, {
             className: 'leaflet-polygon'
         }));
@@ -4126,6 +4119,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
+var Point = google.maps.Point;
+
 /**
  * @method fillPolygon
  * @param {Object} map
@@ -4142,7 +4137,7 @@ function fillPolygon(map, polygon, options) {
 
     // Convert the Clipper points back into lat/lng pairs.
     var latLngs = points.map(function (model) {
-        return map.layerPointToLatLng(new map.Point(model.X, model.Y));
+        return map.layerPointToLatLng(new Point(model.X, model.Y));
     });
 
     (0, _Polygon.createFor)(map, latLngs, options, true);
@@ -4208,7 +4203,7 @@ exports.default = function (map, polygons, options) {
 
         // Determine if it's an intersecting polygon or not.
         var latLngs = polygon.map(function (model) {
-            return map.layerPointToLatLng(new map.Point(model.X, model.Y));
+            return map.layerPointToLatLng(new Point(model.X, model.Y));
         });
 
         // Create the polygon, but this time prevent any merging, otherwise we'll find ourselves
@@ -5705,12 +5700,12 @@ function containerPointToLatLng(pixel, map) {
 
 var NOOP = function NOOP() {};
 
-function createGoogleMarker(map, latLng, icon, options, fdOptions) {
+function createGoogleMarker(map, latLng, icon, options) {
 	var marker = new google.maps.Marker({
 		position: latLng,
 		icon: {
 			path: 'M-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
-			scale: fdOptions.hideDisabledEdges && !options.isEnabled ? 0 : 1.25,
+			scale: 1.25,
 			strokeWeight: 2,
 			fillColor: options.isEnabled ? '#95bc59' : '#adadad',
 			strokeColor: '#fff',
@@ -5731,8 +5726,7 @@ function createGoogleMarker(map, latLng, icon, options, fdOptions) {
 	marker.toggle = function (enabled) {
 		marker.setCursor(enabled ? 'move' : 'pointer');
 		marker.setIcon(_extends({}, marker.icon, {
-			fillColor: enabled ? '#95bc59' : '#adadad',
-			scale: fdOptions.hideDisabledEdges && !enabled ? 0 : 1.25
+			fillColor: enabled ? '#95bc59' : '#adadad'
 		}));
 	};
 
@@ -5744,7 +5738,7 @@ function createGooglePolygon(map, latLngs, options) {
 		strokeColor: '#50622b',
 		strokeOpacity: 0.75,
 		strokeWeight: 0,
-		paths: [latLngs],
+		paths: latLngs,
 		clickable: false
 	}));
 
@@ -5795,7 +5789,7 @@ function createGooglePolygon(map, latLngs, options) {
 }
 
 var GoogleFreeDrawConfig = exports.GoogleFreeDrawConfig = {
-	onMapInit: function onMapInit(map, fdOptions) {
+	onMapInit: function onMapInit(map) {
 		map.eventMap = {};
 
 		map._container = map.getDiv();
@@ -5857,25 +5851,10 @@ var GoogleFreeDrawConfig = exports.GoogleFreeDrawConfig = {
 		};
 
 		map.createMarker = function (latLng, icon, options) {
-			return createGoogleMarker(map, latLng, icon, options, fdOptions);
+			return createGoogleMarker(map, latLng, icon, options);
 		};
 		map.createPolygon = function (latLngs, options) {
 			return createGooglePolygon(map, latLngs, options);
-		};
-		map.makeLatLng = function (latLng) {
-			if (latLng instanceof map.LatLng) {
-				return latLng;
-			}
-
-			if (latLng.lat && latLng.lng) {
-				return new map.LatLng(latLng);
-			}
-
-			if (latLng[0] && latLng[1]) {
-				return new map.LatLng(latLng[0], latLng[1]);
-			}
-
-			return latLng;
 		};
 	}
 };
@@ -5896,7 +5875,7 @@ var _leaflet = __webpack_require__(78);
 
 var NOOP = function NOOP() {};
 
-function createLeafletMarker(map, latLng, iconSettings, options, fdOptions) {
+function createLeafletMarker(map, latLng, iconSettings, options) {
 	var icon = new _leaflet.DivIcon(iconSettings);
 	var marker = new _leaflet.Marker(latLng, { icon: icon }).addTo(map);
 
@@ -5906,14 +5885,8 @@ function createLeafletMarker(map, latLng, iconSettings, options, fdOptions) {
 	marker.toggle = function (enabled) {
 		if (enabled) {
 			_leaflet.DomUtil.removeClass(marker._icon, 'disabled');
-			if (fdOptions.hideDisabledEdges) {
-				marker._icon.style.display = '';
-			}
 		} else {
 			_leaflet.DomUtil.addClass(marker._icon, 'disabled');
-			if (fdOptions.hideDisabledEdges) {
-				marker._icon.style.display = 'none';
-			}
 		}
 	};
 	return marker;
@@ -5930,20 +5903,14 @@ function createLeafletPolygon(map, latLngs, options) {
 }
 
 var LeafletFreeDrawConfig = exports.LeafletFreeDrawConfig = {
-	onMapInit: function onMapInit(map, fdOptions) {
+	onMapInit: function onMapInit(map) {
 		map.createMarker = function (latLng, icon, options) {
-			return createLeafletMarker(map, latLng, icon, options, fdOptions);
+			return createLeafletMarker(map, latLng, icon, options);
 		};
 		map.Point = _leaflet.Point;
 		map.LatLng = _leaflet.LatLng;
 		map.createPolygon = function (latLngs, options) {
-			return createLeafletPolygon(map, latLngs, options, fdOptions);
-		};
-		map.makeLatLng = function (l) {
-			if (l instanceof map.LatLng || l.lat && l.lng) {
-				return l;
-			}
-			return l;
+			return createLeafletPolygon(map, latLngs, options);
 		};
 	}
 };
@@ -6439,7 +6406,7 @@ function createEdges(map, polygon, options) {
         var mode = map[_FreeDraw.modesKey];
         var isEnabled = mode & _Flags.EDIT;
         var latLng = map.layerPointToLatLng(point);
-        var marker = map.createMarker(latLng, { className: ('leaflet-edge ' + (isEnabled ? '' : 'disabled')).trim() }, _extends({}, options, { isEnabled: isEnabled }));
+        var marker = map.createMarker(latLng, { className: ('leaflet-edge ' + (isEnabled ? '' : 'disabled')).trim() }, _extends({}, options, { isEnabled: mode & _Flags.EDIT }));
 
         marker.disableClickPropagation();
 
